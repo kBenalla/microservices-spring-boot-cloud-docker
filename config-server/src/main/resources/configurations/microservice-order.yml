@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: microservice-order
+  datasource:
+    url: jdbc:h2:mem:orders-db
+  h2:
+    console:
+      enabled: true
+
+#eureka:
+#  instance:
+#    prefer-ip-address: true
+#  client:
+#    service-url:
+#      defaultZone: http://localhost:8761/eureka/
+

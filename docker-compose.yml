@@ -1,0 +1,110 @@
+services:
+  my-discovery:
+    build: ./discovery
+    container_name: my-discovery
+    ports:
+      - '8761:8761'
+    expose:
+      - '8761'
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 5s
+      retries: 20
+    networks:
+      - eureka-network
+
+  my-config-server:
+    build: ./config-server
+    container_name: my-config-server
+    ports:
+      - '8888:8888'
+    expose:
+      - '8888'
+    environment:
+      - DISCOVERY-URL=http://my-discovery:8761/eureka
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8888/actuator/health" ]
+      interval: 5s
+      retries: 20
+    depends_on:
+      my-discovery:
+        condition: service_healthy
+    networks:
+      - eureka-network
+  my-ms-product:
+    build: ./microservice-product
+    container_name: my-ms-product
+    ports:
+      - '8081:8081'
+    expose:
+      - '8081'
+    environment:
+      - DISCOVERY-URL=http://my-discovery:8761/eureka
+      - CONFIG-SERVER-URL=http://my-config-server:8888
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8081/actuator/health" ]
+      interval: 5s
+      retries: 20
+    depends_on:
+      my-config-server:
+        condition: service_healthy
+    networks:
+      - eureka-network
+
+  my-ms-order:
+    build: ./microservice-order
+    container_name: my-ms-order
+    ports:
+      - '8082:8082'
+    expose:
+      - '8082'
+    environment:
+      - DISCOVERY-URL=http://my-discovery:8761/eureka
+      - CONFIG-SERVER-URL=http://my-config-server:8888
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8082/actuator/health" ]
+      interval: 5s
+      retries: 20
+    depends_on:
+      my-ms-product:
+        condition: service_healthy
+    networks:
+      - eureka-network
+  my-ms-payment:
+    build: ./microservice-payment
+    container_name: my-ms-payment
+    ports:
+      - '8083:8083'
+    expose:
+      - '8083'
+    environment:
+      - DISCOVERY-URL=http://my-discovery:8761/eureka
+      - CONFIG-SERVER-URL=http://my-config-server:8888
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8083/actuator/health" ]
+      interval: 5s
+      retries: 20
+    depends_on:
+      my-ms-order:
+        condition: service_healthy
+    networks:
+      - eureka-network
+  my-gateway:
+    build: ./gateway
+    container_name: my-gateway
+    ports:
+      - '9090:9090'
+    expose:
+      - '9090'
+    environment:
+      - DISCOVERY-URL=http://my-discovery:8761/eureka
+      - CONFIG-SERVER-URL=http://my-config-server:8888
+    depends_on:
+      my-ms-payment:
+        condition: service_healthy
+    networks:
+      - eureka-network
+
+networks:
+  eureka-network:
+    driver: bridge
